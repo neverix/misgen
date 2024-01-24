@@ -46,7 +46,7 @@ class TurboGenerator(object):
     def generate(self, prompt, rng=None,
                  imgs_per_device = 4, height = 512, width = 512):
         if rng is None:
-            rng = create_key()
+            rng = replicate(create_key())
         
         prompts = [prompt] * jax.device_count() * imgs_per_device
         prompt_ids = self.pipe.prepare_inputs(prompts)
@@ -77,11 +77,11 @@ class TurboGenerator(object):
         decoded = jax.pmap(self.decode)(
             {"params": self.p_vae_state},
             denoised * self.scheduler_state.init_noise_sigma / self.pipe.vae.scaling_factor).sample
-        return decoded.reshape(-1, *decoded.shape[1:]).transpose(0, 2, 3, 1)
+        return decoded.reshape(-1, *decoded.shape[2:]).transpose(0, 2, 3, 1)
 
 
 if __name__ == "__main__":
     tg = TurboGenerator()
     result = tg.generate("a cat")
-    plt.imshow(result[0, 0].transpose(1, 2, 0) / 2 + 0.5)
+    plt.imshow(result[0] / 2 + 0.5)
     plt.savefig("cat.png")
